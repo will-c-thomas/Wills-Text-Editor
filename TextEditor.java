@@ -7,10 +7,12 @@ import java.io.*;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.border.*;
+import javax.swing.filechooser.*;
 
 class TextEditor {
 
 	JFrame window;
+	static JFileChooser fc;
 	ArrayList<JTextArea> codeAreasList = new ArrayList<JTextArea>();
 	JTabbedPane codePane;
 	JTextPane outputArea;
@@ -18,7 +20,7 @@ class TextEditor {
 
 	public TextEditor() {
 
-		//window nad content pane setup
+		//window and content pane setup
 		window = new JFrame("Will's TxtEdit");
 		content = window.getContentPane();
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
@@ -30,16 +32,20 @@ class TextEditor {
 		codePane.setPreferredSize(new Dimension(1200, 525));
 		codePane.setMinimumSize(new Dimension(400, 300));
 		codePane.addTab("New Tab", createTextPanel());
+		codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
 
 		//text area
 		outputArea = new JTextPane();
 		outputArea.setBorder(new EmptyBorder(5,5,5,5));
 		outputArea.setEditable(false);
+		outputArea.setBackground(new Color(50, 50, 50));
+		outputArea.setForeground(Color.WHITE);
+		outputArea.setFont(outputArea.getFont().deriveFont(14f));
 
 		//text area panel
 		JPanel outputPanel = new JPanel();
 		outputPanel.setLayout(new GridLayout(1,1));
-		outputPanel.setBorder(new EmptyBorder(5,0,0,0));
+		outputPanel.setBorder(BorderFactory.createMatteBorder(5,0,0,0, new Color(130,130,130)));
 		outputPanel.setPreferredSize(new Dimension(1200, 150));
 		outputPanel.setMinimumSize(new Dimension(400, 100));
 		outputPanel.add(outputArea);
@@ -70,6 +76,7 @@ class TextEditor {
 		tab1.addActionListener(listener);
 		tab2.addActionListener(listener);
 		tab3.addActionListener(listener);
+		tab4.addActionListener(listener);
 
 		//set menu
 		fileMenu.add(file1);
@@ -86,6 +93,10 @@ class TextEditor {
 		mb.add(fileMenu);
 		mb.add(tabMenu);
 		mb.add(javaMenu);
+
+		//colors and backgrounds
+		content.setBackground(new Color(130, 130, 130));
+		codePane.setBackground(new Color(60, 60, 60));
 
 		//add stuff to window
 		content.add(codePane);
@@ -107,19 +118,67 @@ class TextEditor {
 			//tab Actions
 			if(action.equals("New Tab")) {
 				codePane.addTab("New Tab", createTextPanel());
+				codePane.setSelectedIndex(codeAreasList.size() - 1);
+				codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
 			}
 			if(action.equals("Open Tab")) {
 				//load file
+				int value = fc.showOpenDialog(window);
 
-				codePane.addTab("New Tab", createTextPanel());
-				codePane.setSelectedIndex(codeAreasList.size() - 1);
-				codeAreasList.get(codeAreasList.size() - 1).setText("");
+				//check if file was selected
+				if(value == JFileChooser.APPROVE_OPTION) {
+					File file = fc.getSelectedFile();
+					String text = "";
+
+					//try to read in the text
+					try {
+
+						FileReader fr = new FileReader(file);
+						BufferedReader br = new BufferedReader(fr);
+
+						System.out.println("test");
+
+						String temp = "";
+						while( (temp = br.readLine()) != null)
+							text += temp + "\n";
+
+						br.close();
+					} catch(Exception exc) {
+						JOptionPane.showMessageDialog(window, exc.getMessage());
+					}
+
+					//create new tab and set text
+					codePane.addTab(file.getName(), createTextPanel());
+					codePane.setSelectedIndex(codeAreasList.size() - 1);
+					codeAreasList.get(codeAreasList.size() - 1).setText(text);
+					codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
+				}
+
 			}
 			if(action.equals("Save As")) {
-				
+				int value = fc.showSaveDialog(window);
+
+				if(value == JFileChooser.APPROVE_OPTION) {
+					File file = fc.getSelectedFile();
+
+					try {
+
+						FileWriter fw = new FileWriter(file, false);
+						BufferedWriter bw = new BufferedWriter(fw);
+
+						bw.write( codeAreasList.get( codePane.getSelectedIndex() ).getText() );
+						bw.flush();
+						bw.close();
+
+					} catch(Exception exc) {
+						JOptionPane.showMessageDialog(window, exc.getMessage());
+					}
+
+				}
+
 			}
 			if(action.equals("Close Tab")) {
-
+				codePane.remove( codePane.getSelectedIndex() );
 			}
 
 		}
@@ -132,6 +191,10 @@ class TextEditor {
 		JTextArea codeArea = new JTextArea();
 		codeArea.setBorder(new EmptyBorder(5,5,5,5));
 		codeArea.setTabSize(4);
+		codeArea.setBackground(new Color(50, 50, 50));
+		codeArea.setForeground(Color.WHITE);
+		codeArea.setFont(codeArea.getFont().deriveFont(14f));
+		codeArea.setCaretColor(Color.WHITE);
 		codeAreasList.add(codeArea);
 
 		//scroll pane
@@ -141,14 +204,27 @@ class TextEditor {
 		//panel
 		JPanel codePanel = new JPanel();
 		codePanel.setLayout(new GridLayout(1,1));
-		codePanel.setBorder(new EmptyBorder(0,0,5,0));
+		codePanel.setBorder(BorderFactory.createMatteBorder(0,0,5,0, new Color(130,130,130)));
 		codePanel.setPreferredSize(new Dimension(1200, 525));
 		codePanel.add(scrollPane);
+		
 
 		return codePanel;
 	}
 
 	public static void main(String[] args) {
+		//look and feel code
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch(Exception e) {
+
+		}
+
+		//creates JFileChooser and the Java filter
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Java", "java");
+		fc = new JFileChooser();
+		fc.setFileFilter(filter);
+		fc.setAcceptAllFileFilterUsed(false);
 
 		//remove default borders from tabbed panes
 		UIManager.getDefaults().put("TabbedPane.contentBorderInsets", new Insets(0,0,0,0));

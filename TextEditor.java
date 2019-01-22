@@ -1,4 +1,5 @@
 //Java Text Editor - By William Thomas
+//v0.1 - Stable Build
 
 import java.util.*;
 import java.awt.*;
@@ -14,6 +15,7 @@ class TextEditor {
 	JFrame window;
 	static JFileChooser fc;
 	ArrayList<JTextArea> codeAreasList = new ArrayList<JTextArea>();
+	ArrayList<String> tabAddressesList = new ArrayList<String>();
 	JTabbedPane codePane;
 	JTextPane outputArea;
 	Container content;
@@ -32,7 +34,9 @@ class TextEditor {
 		codePane.setPreferredSize(new Dimension(1200, 525));
 		codePane.setMinimumSize(new Dimension(400, 300));
 		codePane.addTab("New Tab", createTextPanel());
+		codePane.setBackground(new Color(130,130,130));
 		codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
+		tabAddressesList.add("UNSAVED");
 
 		//text area
 		outputArea = new JTextPane();
@@ -53,45 +57,34 @@ class TextEditor {
 		//menu containers
 		JMenuBar mb = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
-		JMenu tabMenu = new JMenu("Tab");
 		JMenu javaMenu = new JMenu("Java");
 
 		//menu content
-		JMenuItem file1 = new JMenuItem("New");
-		JMenuItem file2 = new JMenuItem("Open");
-		JMenuItem file3 = new JMenuItem("Save");
+		JMenuItem file1 = new JMenuItem("New Tab");
+		JMenuItem file2 = new JMenuItem("Open Tab");
+		JMenuItem file3 = new JMenuItem("Save As");
+		JMenuItem file4 = new JMenuItem("Close Tab");
 		JMenuItem java1 = new JMenuItem("Compile");
 		JMenuItem java2 = new JMenuItem("Compile & Run");
-		JMenuItem tab1 = new JMenuItem("New Tab");
-		JMenuItem tab2 = new JMenuItem("Open Tab");
-		JMenuItem tab3 = new JMenuItem("Save As");
-		JMenuItem tab4 = new JMenuItem("Close Tab");
 
 		//add action listeners
 		file1.addActionListener(listener);
 		file2.addActionListener(listener);
 		file3.addActionListener(listener);
+		file4.addActionListener(listener);
 		java1.addActionListener(listener);
 		java2.addActionListener(listener);
-		tab1.addActionListener(listener);
-		tab2.addActionListener(listener);
-		tab3.addActionListener(listener);
-		tab4.addActionListener(listener);
 
 		//set menu
 		fileMenu.add(file1);
 		fileMenu.add(file2);
 		fileMenu.add(file3);
+		fileMenu.add(file4);
 		javaMenu.add(java1);
 		javaMenu.add(java2);
-		tabMenu.add(tab1);
-		tabMenu.add(tab2);
-		tabMenu.add(tab3);
-		tabMenu.add(tab4);
 
 		//add file menus to menu bar
 		mb.add(fileMenu);
-		mb.add(tabMenu);
 		mb.add(javaMenu);
 
 		//colors and backgrounds
@@ -120,6 +113,9 @@ class TextEditor {
 				codePane.addTab("New Tab", createTextPanel());
 				codePane.setSelectedIndex(codeAreasList.size() - 1);
 				codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
+
+				setNewPath(codeAreasList.size() - 1, "UNSAVED");
+
 			}
 			if(action.equals("Open Tab")) {
 				//load file
@@ -136,8 +132,6 @@ class TextEditor {
 						FileReader fr = new FileReader(file);
 						BufferedReader br = new BufferedReader(fr);
 
-						System.out.println("test");
-
 						String temp = "";
 						while( (temp = br.readLine()) != null)
 							text += temp + "\n";
@@ -151,6 +145,7 @@ class TextEditor {
 					codePane.addTab(file.getName(), createTextPanel());
 					codePane.setSelectedIndex(codeAreasList.size() - 1);
 					codeAreasList.get(codeAreasList.size() - 1).setText(text);
+					setNewPath(codeAreasList.size() - 1, file.getAbsolutePath());
 					codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
 				}
 
@@ -174,14 +169,90 @@ class TextEditor {
 						JOptionPane.showMessageDialog(window, exc.getMessage());
 					}
 
+					setNewPath(codePane.getSelectedIndex(), file.getAbsolutePath());
+
 				}
 
 			}
 			if(action.equals("Close Tab")) {
-				codePane.remove( codePane.getSelectedIndex() );
+				codeAreasList.remove(codePane.getSelectedIndex());
+				codePane.remove(codePane.getSelectedIndex());
+				try{
+					tabAddressesList.remove(codePane.getSelectedIndex());
+				}catch(Exception exc){
+
+				}
+			}
+
+			//java menu commands
+			if(action.equals("Compile")) {
+
+				try {
+					String fullPath = tabAddressesList.get(codePane.getSelectedIndex());
+					String filePath = fullPath.substring(0, cutPathIndex(fullPath));
+					String fileName = fullPath.substring(cutPathIndex(fullPath), fullPath.length());
+
+					Runtime.getRuntime().exec("cmd /c start cmd.exe /K \"pushd " + filePath + " && javac " + fileName + "\"");
+
+				} catch(Exception exc) {
+					JOptionPane.showMessageDialog(window, "Compilation Error: Please be sure to save the program first; " + exc.getMessage());
+				}
+
+			}
+			if(action.equals("Compile & Run")) {
+
+				try {
+					String fullPath = tabAddressesList.get(codePane.getSelectedIndex());
+					String filePath = fullPath.substring(0, cutPathIndex(fullPath));
+					String fileName = fullPath.substring(cutPathIndex(fullPath), fullPath.length());
+
+					int extensionIndex = 0;
+					for(int i = 0; i < fileName.length(); i++)
+						if(fileName.charAt(i) == '.')
+							extensionIndex = i;
+
+
+					Runtime.getRuntime().exec("cmd /c start cmd.exe /K \"pushd " + filePath + " && javac " + fileName + " && java " + fileName.substring(0, extensionIndex) + "\"");
+
+				} catch(Exception exc) {
+					JOptionPane.showMessageDialog(window, "Compilation Error: Please be sure to save the program first; " + exc.getMessage());
+				}
+
 			}
 
 		}
+	}
+
+	public void setNewPath(int index, String path) {
+
+		if(tabAddressesList.size() > index) {
+			tabAddressesList.set(index, path);
+		} else {
+			if(index == tabAddressesList.size())
+				tabAddressesList.add(path);
+			else {
+				for(int i = tabAddressesList.size(); i < index; i++) {
+					tabAddressesList.add("UNSAVED");
+				}
+				tabAddressesList.add(path);
+			}
+
+		}
+
+	}
+
+	//find the last \ in the path to get the folder destination
+	public int cutPathIndex(String fullPath) {
+
+		int cutIndex = 0;
+
+		for(int i = 0; i < fullPath.length(); i++) {
+			if(fullPath.charAt(i) == '\\')
+				cutIndex = i + 1;
+		}
+
+		return cutIndex;
+
 	}
 
 	//for new tabs

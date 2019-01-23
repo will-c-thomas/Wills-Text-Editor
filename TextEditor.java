@@ -17,7 +17,6 @@ class TextEditor {
 	ArrayList<JTextArea> codeAreasList = new ArrayList<JTextArea>();
 	ArrayList<String> tabAddressesList = new ArrayList<String>();
 	JTabbedPane codePane;
-	JTextPane outputArea;
 	Container content;
 
 	public TextEditor() {
@@ -27,32 +26,12 @@ class TextEditor {
 		content = window.getContentPane();
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
-		Listener listener = new Listener();
-
 		//text area panel
 		codePane = new JTabbedPane();
-		codePane.setPreferredSize(new Dimension(1200, 525));
-		codePane.setMinimumSize(new Dimension(400, 300));
 		codePane.addTab("New Tab", createTextPanel());
 		codePane.setBackground(new Color(130,130,130));
 		codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
 		tabAddressesList.add("UNSAVED");
-
-		//text area
-		outputArea = new JTextPane();
-		outputArea.setBorder(new EmptyBorder(5,5,5,5));
-		outputArea.setEditable(false);
-		outputArea.setBackground(new Color(50, 50, 50));
-		outputArea.setForeground(Color.WHITE);
-		outputArea.setFont(outputArea.getFont().deriveFont(14f));
-
-		//text area panel
-		JPanel outputPanel = new JPanel();
-		outputPanel.setLayout(new GridLayout(1,1));
-		outputPanel.setBorder(BorderFactory.createMatteBorder(5,0,0,0, new Color(130,130,130)));
-		outputPanel.setPreferredSize(new Dimension(1200, 150));
-		outputPanel.setMinimumSize(new Dimension(400, 100));
-		outputPanel.add(outputArea);
 
 		//menu containers
 		JMenuBar mb = new JMenuBar();
@@ -60,20 +39,28 @@ class TextEditor {
 		JMenu javaMenu = new JMenu("Java");
 
 		//menu content
-		JMenuItem file1 = new JMenuItem("New Tab");
-		JMenuItem file2 = new JMenuItem("Open Tab");
-		JMenuItem file3 = new JMenuItem("Save As");
+		JMenuItem file1 = new JMenuItem("New Tab", KeyEvent.VK_N);
+		JMenuItem file2 = new JMenuItem("Open Tab", KeyEvent.VK_O);
+		JMenuItem file3 = new JMenuItem("Save As", KeyEvent.VK_S);
 		JMenuItem file4 = new JMenuItem("Close Tab");
-		JMenuItem java1 = new JMenuItem("Compile");
-		JMenuItem java2 = new JMenuItem("Compile & Run");
+		JMenuItem java1 = new JMenuItem("Compile", KeyEvent.VK_T);
+		JMenuItem java2 = new JMenuItem("Compile & Run", KeyEvent.VK_R);
+		JMenuItem java3 = new JMenuItem("Help");
 
-		//add action listeners
+		//add action listeners & accelerators
+		Listener listener = new Listener();
 		file1.addActionListener(listener);
+		file1.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
 		file2.addActionListener(listener);
+		file2.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK));
 		file3.addActionListener(listener);
+		file3.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK));
 		file4.addActionListener(listener);
 		java1.addActionListener(listener);
+		java1.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, ActionEvent.CTRL_MASK));
 		java2.addActionListener(listener);
+		java2.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK));
+		java3.addActionListener(listener);
 
 		//set menu
 		fileMenu.add(file1);
@@ -82,10 +69,17 @@ class TextEditor {
 		fileMenu.add(file4);
 		javaMenu.add(java1);
 		javaMenu.add(java2);
+		javaMenu.add(java3);
 
 		//add file menus to menu bar
 		mb.add(fileMenu);
 		mb.add(javaMenu);
+
+		//creates JFileChooser and the Java filter for open and save windows
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Java", "java");
+		fc = new JFileChooser();
+		fc.setFileFilter(filter);
+		fc.setAcceptAllFileFilterUsed(false);
 
 		//colors and backgrounds
 		content.setBackground(new Color(130, 130, 130));
@@ -93,7 +87,6 @@ class TextEditor {
 
 		//add stuff to window
 		content.add(codePane);
-		content.add(outputPanel);
 		window.setJMenuBar(mb);
 
 		window.setMinimumSize(new Dimension(400, 400));
@@ -113,12 +106,11 @@ class TextEditor {
 				codePane.addTab("New Tab", createTextPanel());
 				codePane.setSelectedIndex(codeAreasList.size() - 1);
 				codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
-
 				setNewPath(codeAreasList.size() - 1, "UNSAVED");
 
 			}
 			if(action.equals("Open Tab")) {
-				//load file
+				//opens an open window
 				int value = fc.showOpenDialog(window);
 
 				//check if file was selected
@@ -132,6 +124,7 @@ class TextEditor {
 						FileReader fr = new FileReader(file);
 						BufferedReader br = new BufferedReader(fr);
 
+						//Reads in the file line by line
 						String temp = "";
 						while( (temp = br.readLine()) != null)
 							text += temp + "\n";
@@ -151,8 +144,10 @@ class TextEditor {
 
 			}
 			if(action.equals("Save As")) {
+				//opens a save window
 				int value = fc.showSaveDialog(window);
 
+				//check if file was selected
 				if(value == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
 
@@ -161,6 +156,7 @@ class TextEditor {
 						FileWriter fw = new FileWriter(file, false);
 						BufferedWriter bw = new BufferedWriter(fw);
 
+						//saves the file to the selected path
 						bw.write( codeAreasList.get( codePane.getSelectedIndex() ).getText() );
 						bw.flush();
 						bw.close();
@@ -169,12 +165,15 @@ class TextEditor {
 						JOptionPane.showMessageDialog(window, exc.getMessage());
 					}
 
+					//sets the new path for the tab
 					setNewPath(codePane.getSelectedIndex(), file.getAbsolutePath());
 
 				}
 
 			}
 			if(action.equals("Close Tab")) {
+
+				//remove the tab from the arraylists
 				codeAreasList.remove(codePane.getSelectedIndex());
 				codePane.remove(codePane.getSelectedIndex());
 				try{
@@ -188,10 +187,14 @@ class TextEditor {
 			if(action.equals("Compile")) {
 
 				try {
+					//get the file path and file name
 					String fullPath = tabAddressesList.get(codePane.getSelectedIndex());
 					String filePath = fullPath.substring(0, cutPathIndex(fullPath));
 					String fileName = fullPath.substring(cutPathIndex(fullPath), fullPath.length());
 
+					//Start cmd
+					//run "pushd" on the file path to move to that path
+					//run "javac" on the file name to compile the program
 					Runtime.getRuntime().exec("cmd /c start cmd.exe /K \"pushd " + filePath + " && javac " + fileName + "\"");
 
 				} catch(Exception exc) {
@@ -202,35 +205,60 @@ class TextEditor {
 			if(action.equals("Compile & Run")) {
 
 				try {
+					//get the file path and file name
 					String fullPath = tabAddressesList.get(codePane.getSelectedIndex());
 					String filePath = fullPath.substring(0, cutPathIndex(fullPath));
 					String fileName = fullPath.substring(cutPathIndex(fullPath), fullPath.length());
 
+					//get index of '.' to remove the extension from the file name
 					int extensionIndex = 0;
 					for(int i = 0; i < fileName.length(); i++)
 						if(fileName.charAt(i) == '.')
 							extensionIndex = i;
 
-
-					Runtime.getRuntime().exec("cmd /c start cmd.exe /K \"pushd " + filePath + " && javac " + fileName + " && java " + fileName.substring(0, extensionIndex) + "\"");
+					//Start cmd
+					//run "pushd" on the file path to move to that path
+					//run "javac *.java" to compile all java files in the folder
+					//run java on the file name without the extension to start the program
+					Runtime.getRuntime().exec("cmd /c start cmd.exe /K \"pushd " + filePath + " && javac *.java && java " + fileName.substring(0, extensionIndex) + "\"");
 
 				} catch(Exception exc) {
 					JOptionPane.showMessageDialog(window, "Compilation Error: Please be sure to save the program first; " + exc.getMessage());
 				}
 
 			}
+			if(action.equals("Help")) {
+				//opens a help dialog box with the following message
+				JOptionPane.showMessageDialog(window, "Compile: runs the \"javac\" command on the current file.\n\nCompile & Run: runs the command \"javac *.java\" in the parent folder of the current file, and then runs the \"java\" command on the current file.");
+			}
 
 		}
 	}
 
+	//keychecker for syntax highlighting
+	class Keychecker extends KeyAdapter {
+		@Override
+		public void keyPressed(KeyEvent e) {
+
+		}
+
+	}
+
+	//adds a new path to the path array list
 	public void setNewPath(int index, String path) {
 
+
 		if(tabAddressesList.size() > index) {
+			//if the path is already set and is being changed
 			tabAddressesList.set(index, path);
+
 		} else {
 			if(index == tabAddressesList.size())
+				//if the index requested is one higher than highest current
 				tabAddressesList.add(path);
+
 			else {
+				//if the index requested is more than one higher than the highest current
 				for(int i = tabAddressesList.size(); i < index; i++) {
 					tabAddressesList.add("UNSAVED");
 				}
@@ -252,10 +280,9 @@ class TextEditor {
 		}
 
 		return cutIndex;
-
 	}
 
-	//for new tabs
+	//create the text panel for new tabs
 	public JPanel createTextPanel() {
 
 		//text area
@@ -266,6 +293,7 @@ class TextEditor {
 		codeArea.setForeground(Color.WHITE);
 		codeArea.setFont(codeArea.getFont().deriveFont(14f));
 		codeArea.setCaretColor(Color.WHITE);
+		codeArea.addKeyListener(new Keychecker());
 		codeAreasList.add(codeArea);
 
 		//scroll pane
@@ -275,11 +303,9 @@ class TextEditor {
 		//panel
 		JPanel codePanel = new JPanel();
 		codePanel.setLayout(new GridLayout(1,1));
-		codePanel.setBorder(BorderFactory.createMatteBorder(0,0,5,0, new Color(130,130,130)));
 		codePanel.setPreferredSize(new Dimension(1200, 525));
 		codePanel.add(scrollPane);
 		
-
 		return codePanel;
 	}
 
@@ -291,18 +317,11 @@ class TextEditor {
 
 		}
 
-		//creates JFileChooser and the Java filter
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("Java", "java");
-		fc = new JFileChooser();
-		fc.setFileFilter(filter);
-		fc.setAcceptAllFileFilterUsed(false);
-
 		//remove default borders from tabbed panes
 		UIManager.getDefaults().put("TabbedPane.contentBorderInsets", new Insets(0,0,0,0));
 		UIManager.getDefaults().put("TabbedPane.tabsOverlapBorder", true);
 
 		new TextEditor();
-
 	}
 
 }

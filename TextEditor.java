@@ -2,11 +2,13 @@
 //v0.1 - Stable Build
 
 import java.util.*;
+import java.lang.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.text.*;
 import javax.swing.border.*;
 import javax.swing.filechooser.*;
 
@@ -14,8 +16,9 @@ class TextEditor {
 
 	JFrame window;
 	static JFileChooser fc;
-	ArrayList<JTextArea> codeAreasList = new ArrayList<JTextArea>();
+	ArrayList<JTextPane> codeAreasList = new ArrayList<JTextPane>();
 	ArrayList<String> tabAddressesList = new ArrayList<String>();
+	ArrayList<StyledDocument> codeDocList = new ArrayList<StyledDocument>();
 	JTabbedPane codePane;
 	Container content;
 
@@ -176,10 +179,11 @@ class TextEditor {
 				//remove the tab from the arraylists
 				codeAreasList.remove(codePane.getSelectedIndex());
 				codePane.remove(codePane.getSelectedIndex());
+				codeDocList.remove(codePane.getSelectedIndex());
 				try{
 					tabAddressesList.remove(codePane.getSelectedIndex());
 				}catch(Exception exc){
-
+					JOptionPane.showMessageDialog(window, e);
 				}
 			}
 
@@ -240,13 +244,20 @@ class TextEditor {
 		@Override
 		public void keyPressed(KeyEvent e) {
 
+			//if a special character is typed, check the syntax coloring
+			String specialChars = "()*-=/+\\\"\';:.,><[]{} ";
+			if(specialChars.contains(String.valueOf(e.getKeyChar())) )  
+				setSyntax( codeAreasList.get(codePane.getSelectedIndex()) );
 		}
 
 	}
 
+	public void setSyntax(JTextPane currPane) {
+		
+	}
+
 	//adds a new path to the path array list
 	public void setNewPath(int index, String path) {
-
 
 		if(tabAddressesList.size() > index) {
 			//if the path is already set and is being changed
@@ -286,15 +297,15 @@ class TextEditor {
 	public JPanel createTextPanel() {
 
 		//text area
-		JTextArea codeArea = new JTextArea();
+		JTextPane codeArea = new JTextPane();
 		codeArea.setBorder(new EmptyBorder(5,5,5,5));
-		codeArea.setTabSize(4);
 		codeArea.setBackground(new Color(50, 50, 50));
 		codeArea.setForeground(Color.WHITE);
-		codeArea.setFont(codeArea.getFont().deriveFont(14f));
+		codeArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
 		codeArea.setCaretColor(Color.WHITE);
 		codeArea.addKeyListener(new Keychecker());
 		codeAreasList.add(codeArea);
+		codeDocList.add(codeArea.getStyledDocument());
 
 		//scroll pane
 		JScrollPane scrollPane = new JScrollPane(codeArea);

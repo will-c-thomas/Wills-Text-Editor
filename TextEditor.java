@@ -40,15 +40,17 @@ class TextEditor {
 		JMenuBar mb = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
 		JMenu javaMenu = new JMenu("Java");
+		JMenu bfMenu = new JMenu("BF");
 
 		//menu content
 		JMenuItem file1 = new JMenuItem("New Tab", KeyEvent.VK_N);
 		JMenuItem file2 = new JMenuItem("Open Tab", KeyEvent.VK_O);
 		JMenuItem file3 = new JMenuItem("Save As", KeyEvent.VK_S);
 		JMenuItem file4 = new JMenuItem("Close Tab");
+		JMenuItem file5 = new JMenuItem("Help");
 		JMenuItem java1 = new JMenuItem("Compile", KeyEvent.VK_T);
 		JMenuItem java2 = new JMenuItem("Compile & Run", KeyEvent.VK_R);
-		JMenuItem java3 = new JMenuItem("Help");
+		JMenuItem bf1 = new JMenuItem("Interpret");
 
 		//add action listeners & accelerators
 		Listener listener = new Listener();
@@ -59,27 +61,31 @@ class TextEditor {
 		file3.addActionListener(listener);
 		file3.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK));
 		file4.addActionListener(listener);
+		file5.addActionListener(listener);
 		java1.addActionListener(listener);
 		java1.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, ActionEvent.CTRL_MASK));
 		java2.addActionListener(listener);
 		java2.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK));
-		java3.addActionListener(listener);
+		bf1.addActionListener(listener);
+
 
 		//set menu
 		fileMenu.add(file1);
 		fileMenu.add(file2);
 		fileMenu.add(file3);
 		fileMenu.add(file4);
+		fileMenu.add(file5);
 		javaMenu.add(java1);
 		javaMenu.add(java2);
-		javaMenu.add(java3);
+		bfMenu.add(bf1);
 
 		//add file menus to menu bar
 		mb.add(fileMenu);
 		mb.add(javaMenu);
+		mb.add(bfMenu);
 
-		//creates JFileChooser and the Java filter for open and save windows
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("Java", "java");
+		//creates JFileChooser and the Accepted Files filter for open and save windows
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Accepted Files", "java", "dpj", "b", "bf");
 		fc = new JFileChooser();
 		fc.setFileFilter(filter);
 		fc.setAcceptAllFileFilterUsed(false);
@@ -231,9 +237,24 @@ class TextEditor {
 				}
 
 			}
+			if(action.equals("Interpret")) {
+
+				//get Text Component
+				JTextComponent txtComp = codeAreasList.get(codePane.getSelectedIndex());
+
+				//create and run BF interpreter
+				BrainFkInterpreter bf = new BrainFkInterpreter(txtComp);
+				String value = bf.interpret();
+
+				if(value.equals("Complete."))
+					JOptionPane.showMessageDialog(window,"Success\nCheck console for interpreted output.");
+				else
+					JOptionPane.showMessageDialog(window,"Interpretation failed: \n" + value);
+
+			}
 			if(action.equals("Help")) {
 				//opens a help dialog box with the following message
-				JOptionPane.showMessageDialog(window, "Compile: runs the \"javac\" command on the current file.\n\nCompile & Run: runs the command \"javac *.java\" in the parent folder of the current file, and then runs the \"java\" command on the current file.");
+				JOptionPane.showMessageDialog(window, "Compile: runs the \"javac\" command on the current file.\n\nCompile & Run: runs the command \"javac *.java\" in the parent folder of the current file, and then runs the \"java\" command on the current file.\n\nPlease check GitHub or ReadMe file for information on BF options.");
 			}
 
 		}
@@ -253,7 +274,7 @@ class TextEditor {
 	}
 
 	public void setSyntax(JTextPane currPane) {
-		
+
 	}
 
 	//adds a new path to the path array list

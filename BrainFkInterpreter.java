@@ -1,17 +1,23 @@
+import javax.swing.*;
 import javax.swing.text.*;
 import java.util.*;
 import java.lang.*;
 
+//BrainFk interpreter
+//Converts BrainFk code to java code and compiles
 class BrainFkInterpreter {
 	
 	String code;
+	JFrame frame;
 
-	public BrainFkInterpreter(String code) {
+	public BrainFkInterpreter(String code, JFrame frame) {
 		this.code = code;
+		this.frame = frame;
 	}
 
-	public BrainFkInterpreter(JTextComponent txtComp) {
-		this(txtComp.getText());
+	public BrainFkInterpreter(JTextComponent txtComp, JFrame frame) {
+		this.code = txtComp.getText();
+		this.frame = frame;
 	}
 
 	public void setText(String code) {
@@ -28,6 +34,8 @@ class BrainFkInterpreter {
 
 	public String interpret() {
 
+		String output = "";
+
 		//create memory
 		ArrayList<Integer> memory = new ArrayList<Integer>();
 		memory.add(0);
@@ -41,17 +49,17 @@ class BrainFkInterpreter {
 		for(int codePos = 0; codePos < code.length();) {
 			char curr = code.charAt(codePos);
 
-			if(curr == '+') { //increment
+			if(curr == '+') { //increment memory value
 
 				codePos++;
 				memory.set(memPos, memory.get(memPos) + 1);
 
-			} else if(curr == '-') { //decrement
+			} else if(curr == '-') { //decrement memory value
 
 				codePos++;
 				memory.set(memPos, memory.get(memPos) - 1);
 
-			} else if(curr == '>') { //move to the right
+			} else if(curr == '>') { //move memory pos to the right
 
 				codePos++;
 				memPos++;
@@ -59,7 +67,7 @@ class BrainFkInterpreter {
 				if(memPos >= memory.size())
 					memory.add(0);
 
-			} else if(curr == '<') { //move to the left
+			} else if(curr == '<') { //move memory pos to the left
 
 				codePos++;
 				memPos--;
@@ -73,6 +81,7 @@ class BrainFkInterpreter {
 
 			} else if(curr == ']') { //end loop
 
+				//if memory value == 0, then move on
 				if(memory.get(memPos) == 0) {
 					codePos++;
 				} else {
@@ -97,7 +106,7 @@ class BrainFkInterpreter {
 			} else if(curr == '.') { //print current value
 
 				codePos++;
-				System.out.println(Character.toChars(memory.get(memPos)));
+				output += String.valueOf( Character.toChars(memory.get(memPos)) );
 
 			} else if(curr == ',') { //input value
 
@@ -112,6 +121,8 @@ class BrainFkInterpreter {
 			}
 
 		}
+
+		JOptionPane.showMessageDialog(frame, "Complete:\n" + output);
 
 		return "Complete.";
 	}

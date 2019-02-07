@@ -1,5 +1,5 @@
 //Java Text Editor - By William Thomas
-//v0.1 - Stable Build
+//v1.0 - Stable Build
 
 import java.util.*;
 import java.lang.*;
@@ -11,6 +11,7 @@ import javax.swing.event.*;
 import javax.swing.text.*;
 import javax.swing.border.*;
 import javax.swing.filechooser.*;
+import javax.swing.text.MutableAttributeSet.*;
 
 class TextEditor {
 
@@ -85,7 +86,7 @@ class TextEditor {
 		mb.add(bfMenu);
 
 		//creates JFileChooser and the Accepted Files filter for open and save windows
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("Accepted Files", "java", "dpj", "b", "bf");
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Java & BF: .java, .dpj, .b, .bf", "java", "dpj", "b", "bf");
 		fc = new JFileChooser();
 		fc.setFileFilter(filter);
 		fc.setAcceptAllFileFilterUsed(false);
@@ -149,6 +150,23 @@ class TextEditor {
 					codeAreasList.get(codeAreasList.size() - 1).setText(text);
 					setNewPath(codeAreasList.size() - 1, file.getAbsolutePath());
 					codePane.setBackgroundAt(codeAreasList.size() - 1, new Color(75,75,75));
+					setSyntax( codeAreasList.get(codePane.getSelectedIndex()) );
+
+					//if the original new tab is still empty, delete it
+					if(codeAreasList.get(0).getText().equals("")){
+
+						//remove the tab from the arraylists
+						codeAreasList.remove(0);
+						codePane.remove(0);
+						codeDocList.remove(0);
+						try{
+							tabAddressesList.remove(0);
+						}catch(Exception exc){
+							JOptionPane.showMessageDialog(window, e);
+						}
+
+					}
+
 				}
 
 			}
@@ -243,13 +261,10 @@ class TextEditor {
 				JTextComponent txtComp = codeAreasList.get(codePane.getSelectedIndex());
 
 				//create and run BF interpreter
-				BrainFkInterpreter bf = new BrainFkInterpreter(txtComp);
+				BrainFkInterpreter bf = new BrainFkInterpreter(txtComp, window);
 				String value = bf.interpret();
 
-				if(value.equals("Complete."))
-					JOptionPane.showMessageDialog(window,"Success\nCheck console for interpreted output.");
-				else
-					JOptionPane.showMessageDialog(window,"Interpretation failed: \n" + value);
+				//JOptionPane.showMessageDialog(window,value + "\nCheck console for additional details or output.");
 
 			}
 			if(action.equals("Help")) {
@@ -263,18 +278,137 @@ class TextEditor {
 	//keychecker for syntax highlighting
 	class Keychecker extends KeyAdapter {
 		@Override
-		public void keyPressed(KeyEvent e) {
+		public void keyReleased(KeyEvent e) {
 
 			//if a special character is typed, check the syntax coloring
-			String specialChars = "()*-=/+\\\"\';:.,><[]{} ";
-			if(specialChars.contains(String.valueOf(e.getKeyChar())) )  
+			//the syntax only  updates when special characters are used
+			String specialChars = "@()*-=/+^?%!\\\"\';:.,><[]{} ";
+			if(specialChars.contains(String.valueOf(e.getKeyChar())) || e.equals(KeyEvent.VK_BACK_SPACE))  {
+				e.consume();
 				setSyntax( codeAreasList.get(codePane.getSelectedIndex()) );
+			}
 		}
 
 	}
 
 	public void setSyntax(JTextPane currPane) {
 
+		MutableAttributeSet attSet = currPane.getInputAttributes();
+		StyledDocument doc = currPane.getStyledDocument();
+		String text = currPane.getText();
+
+		for(int i = 0; i < text.length(); i++){
+
+			//Found " indicating string
+			if(text.charAt(i) == '/' && text.charAt(i+1) == '/') {
+				//found comment
+				int start = i;
+
+				do{
+					i++;
+				} while(text.charAt(i) != '\n');
+
+				//set to grey
+				if(text.charAt(i) == '\n') {
+					StyleConstants.setForeground(attSet, new Color(160, 160, 160));
+					doc.setCharacterAttributes(start, i-start, attSet, false);
+					resetForeground(attSet, doc, i + 1);
+				}
+
+			} else if( text.charAt(i) == '\"' && text.charAt(i-1) != '\\'){
+				int start = i;
+
+				//find end of string
+				do{
+					i++;
+				} while( (text.charAt(i) != '\"' || text.charAt(i-1) == '\\') && i+1<text.length());
+
+				//set to yellow
+				if(text.charAt(i) == '\"' || text.charAt(i) == '\''){
+					StyleConstants.setForeground(attSet, Color.yellow);
+					doc.setCharacterAttributes(start, i-start+1, attSet, false);
+					++i;
+					resetForeground(attSet, doc, i);
+				} else {
+					i = start;
+				}
+
+			} else if("=+-*^/<>?:%![]@".contains( String.valueOf(text.charAt(i)) )){ //found special character
+				//set to red
+				StyleConstants.setForeground(attSet, new Color(237, 86, 78));
+				doc.setCharacterAttributes(i, 1, attSet, false);
+				resetForeground(attSet, doc, i + 1);
+
+			} else if("eidwnpstcrfOb".contains( String.valueOf(text.charAt(i)) ) && (i == 0 || "{}(); \n\t".contains( String.valueOf(text.charAt(i - 1)) ))){
+				//found potential keyword
+				int start = i;
+				String[] keyWords = {"Override", "static", "return", "break", "else", "if", "do", "extends", "for", "while", "new", "import", "public", "private","static", "implements", "try", "catch", "instanceof", "false", "true"};
+				Arrays.sort(keyWords);
+
+				//find index of the end of the word
+				while(!"{}().; \n\t".contains( String.valueOf(text.charAt(i)) )) {
+					i++;
+				}
+
+				//if the word is found in keyword array,
+				if(Arrays.binarySearch(keyWords, text.substring(start, i)) > 0) {
+					StyleConstants.setForeground(attSet, new Color(237, 86, 78));
+					doc.setCharacterAttributes(start, i-start, attSet, false);
+					resetForeground(attSet, doc, i + 1);
+				} else {
+					i = start + 1;
+				}
+
+			} else if(text.charAt(i) == '(') {
+				//found potential function call
+				int end = i;
+
+				//set i to the start of the function
+				while(!"(.; ".contains( String.valueOf(text.charAt(i-1)) ) && i > 1) {
+					i--;
+				}
+
+				//if the starting char is a function, set to cyan
+				if(Character.isLowerCase(text.charAt(i))) {
+					StyleConstants.setForeground(attSet, Color.cyan);
+					doc.setCharacterAttributes(i, end - i, attSet, false);
+					resetForeground(attSet, doc, end + 1);
+				}
+
+				//set i to the end again
+				i = end;
+
+			} else if(Character.isDigit(text.charAt(i))) {
+				//set digit to magenta
+				StyleConstants.setForeground(attSet, new Color(194, 83, 226));
+				doc.setCharacterAttributes(i, 1, attSet, false);
+				resetForeground(attSet, doc, i + 1);
+
+			}
+
+			if(Character.isUpperCase(text.charAt(i)) && (i == 0 || "; \t\n(,".contains( String.valueOf(text.charAt(i-1)) ))) {
+				int start = i;
+
+				do{
+					i++;
+				} while(!"{}())., \n\t".contains( String.valueOf(text.charAt(i)) ));
+
+				if(!text.substring(start, i).equals("Override")) {
+					StyleConstants.setForeground(attSet, Color.cyan);
+					doc.setCharacterAttributes(start, i-start, attSet, false);
+					resetForeground(attSet, doc, i + 1);
+				}
+
+			}
+
+
+		}
+
+	}
+
+	public void resetForeground(MutableAttributeSet attSet, StyledDocument doc, int startIndex) {
+		StyleConstants.setForeground(attSet, Color.white);
+		doc.setCharacterAttributes(startIndex, startIndex + 1, attSet, false);
 	}
 
 	//adds a new path to the path array list

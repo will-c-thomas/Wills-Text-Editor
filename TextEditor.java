@@ -282,7 +282,7 @@ class TextEditor {
 
 			//if a special character is typed, check the syntax coloring
 			//the syntax only  updates when special characters are used
-			String specialChars = "@()*-=/+^?%!\\\"\';:.,><[]{} ";
+			String specialChars = "@()*-=/+^?%!\\\"\';:.,><[]{} \t\n\r";
 			if(specialChars.contains(String.valueOf(e.getKeyChar())) || e.equals(KeyEvent.VK_BACK_SPACE))  {
 				e.consume();
 				setSyntax( codeAreasList.get(codePane.getSelectedIndex()) );
@@ -297,37 +297,49 @@ class TextEditor {
 		StyledDocument doc = currPane.getStyledDocument();
 		String text = currPane.getText();
 
+		String[] keyWords = {"Override", "static", "return", "break", "else", "if", "do", "extends", "for", "while", "new", "import", "public", "private","static", "implements", "try", "catch", "instanceof", "false", "true"};
+		Arrays.sort(keyWords);
+
+		//counter for the new line difference between character count and doc highlighting
+		int offsetCounter = 0;
+
 		for(int i = 0; i < text.length(); i++){
 
-			//Found " indicating string
+			if(text.charAt(i) == '\n')
+				offsetCounter++;
+
+			if(text.charAt(i) == '\t')
+				continue;
+
+			//Found / indicating comment
 			if(text.charAt(i) == '/' && text.charAt(i+1) == '/') {
 				//found comment
 				int start = i;
 
 				do{
-					i++;
-				} while(text.charAt(i) != '\n');
+					++i;
+				} while(text.charAt(i) != '\n' || text.charAt(i) != '\r');
 
 				//set to grey
 				if(text.charAt(i) == '\n') {
 					StyleConstants.setForeground(attSet, new Color(160, 160, 160));
-					doc.setCharacterAttributes(start, i-start, attSet, false);
+					doc.setCharacterAttributes(start-offsetCounter, i-start+1, attSet, false);
 					resetForeground(attSet, doc, i + 1);
 				}
 
-			} else if( text.charAt(i) == '\"' && text.charAt(i-1) != '\\'){
+			} else if( text.charAt(i) == '\'' || text.charAt(i) == '\"' && text.charAt(i-1) != '\\'){
 				int start = i;
 
 				//find end of string
 				do{
-					i++;
-				} while( (text.charAt(i) != '\"' || text.charAt(i-1) == '\\') && i+1<text.length());
+					++i;
+				} while( (text.charAt(i) != '\"' && text.charAt(i) != '\'' || text.charAt(i-1) == '\\') && i+1<text.length());
 
 				//set to yellow
 				if(text.charAt(i) == '\"' || text.charAt(i) == '\''){
 					StyleConstants.setForeground(attSet, Color.yellow);
-					doc.setCharacterAttributes(start, i-start+1, attSet, false);
-					++i;
+					doc.setCharacterAttributes(start-offsetCounter, i-start+1, attSet, false);
+					//++i;
 					resetForeground(attSet, doc, i);
 				} else {
 					i = start;
@@ -336,27 +348,25 @@ class TextEditor {
 			} else if("=+-*^/<>?:%![]@".contains( String.valueOf(text.charAt(i)) )){ //found special character
 				//set to red
 				StyleConstants.setForeground(attSet, new Color(237, 86, 78));
-				doc.setCharacterAttributes(i, 1, attSet, false);
+				doc.setCharacterAttributes(i-offsetCounter, 1, attSet, false);
 				resetForeground(attSet, doc, i + 1);
 
-			} else if("eidwnpstcrfOb".contains( String.valueOf(text.charAt(i)) ) && (i == 0 || "{}(); \n\t".contains( String.valueOf(text.charAt(i - 1)) ))){
+			} else if("eidwnpstcrfOb".contains( String.valueOf(text.charAt(i)) ) && (i == 0 || "{}(); \n\t\r".contains( String.valueOf(text.charAt(i - 1)) ))){
 				//found potential keyword
 				int start = i;
-				String[] keyWords = {"Override", "static", "return", "break", "else", "if", "do", "extends", "for", "while", "new", "import", "public", "private","static", "implements", "try", "catch", "instanceof", "false", "true"};
-				Arrays.sort(keyWords);
 
 				//find index of the end of the word
-				while(!"{}().; \n\t".contains( String.valueOf(text.charAt(i)) )) {
+				while(!"{}().; \n\t\r".contains( String.valueOf(text.charAt(i)) )) {
 					i++;
 				}
 
 				//if the word is found in keyword array,
 				if(Arrays.binarySearch(keyWords, text.substring(start, i)) > 0) {
 					StyleConstants.setForeground(attSet, new Color(237, 86, 78));
-					doc.setCharacterAttributes(start, i-start, attSet, false);
+					doc.setCharacterAttributes(start-offsetCounter, i-start, attSet, false);
 					resetForeground(attSet, doc, i + 1);
 				} else {
-					i = start + 1;
+					i = start;
 				}
 
 			} else if(text.charAt(i) == '(') {
@@ -371,7 +381,7 @@ class TextEditor {
 				//if the starting char is a function, set to cyan
 				if(Character.isLowerCase(text.charAt(i))) {
 					StyleConstants.setForeground(attSet, Color.cyan);
-					doc.setCharacterAttributes(i, end - i, attSet, false);
+					doc.setCharacterAttributes(i-offsetCounter, end - i, attSet, false);
 					resetForeground(attSet, doc, end + 1);
 				}
 
@@ -381,23 +391,25 @@ class TextEditor {
 			} else if(Character.isDigit(text.charAt(i))) {
 				//set digit to magenta
 				StyleConstants.setForeground(attSet, new Color(194, 83, 226));
-				doc.setCharacterAttributes(i, 1, attSet, false);
+				doc.setCharacterAttributes(i-offsetCounter, 1, attSet, false);
 				resetForeground(attSet, doc, i + 1);
 
 			}
 
-			if(Character.isUpperCase(text.charAt(i)) && (i == 0 || "; \t\n(,".contains( String.valueOf(text.charAt(i-1)) ))) {
+			//found object definition
+			if(Character.isUpperCase(text.charAt(i)) && (i == 0 || "\r; \t\n(,".contains( String.valueOf(text.charAt(i-1)) ))) {
 				int start = i;
 
 				do{
 					i++;
-				} while(!"{}())., \n\t".contains( String.valueOf(text.charAt(i)) ));
+				} while(!"{}()[]., \n\t\r".contains( String.valueOf(text.charAt(i)) ));
 
 				if(!text.substring(start, i).equals("Override")) {
 					StyleConstants.setForeground(attSet, Color.cyan);
-					doc.setCharacterAttributes(start, i-start, attSet, false);
+					doc.setCharacterAttributes(start-offsetCounter, i-start, attSet, false);
 					resetForeground(attSet, doc, i + 1);
 				}
+				--i;
 
 			}
 

@@ -1,6 +1,5 @@
 # Wills-Text-Editor
-Text editor for coding and running Java programs.
-
+Text editor with dynamic syntax highlighting for coding and running Java programs.
 
 Under the "Java" menu option:
   - Compile: runs the "javac" command on the currently opened file.

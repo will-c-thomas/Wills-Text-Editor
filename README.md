@@ -1,4 +1,7 @@
 # Wills-Text-Editor
+
+![Image of Yaktocat](https://github.com/latte164/Wills-Text-Editor/blob/master/WillsTxtEditor%20Picture.png)
+
 Text editor with dynamic syntax highlighting for coding and running Java programs.
 
 Under the "Java" menu option:

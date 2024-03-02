@@ -1,6 +1,6 @@
 # Wills-Text-Editor
 
-![Image of Text Editor Demo](https://github.com/latte164/Wills-Text-Editor/blob/master/WillsTxtEditor%20Picture.png)
+![Image of Text Editor Demo](https://github.com/will-c-thomas/Wills-Text-Editor/blob/master/WillsTxtEditor%20Picture.png)
 
 Text editor with dynamic syntax highlighting for coding and running Java programs.
 
